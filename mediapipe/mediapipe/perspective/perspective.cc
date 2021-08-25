@@ -54,6 +54,9 @@ constexpr int kKeyS = 115;
 constexpr int kKeyW = 119;
 constexpr int kKeyX = 120;
 
+constexpr char kComma[] = ",";
+constexpr int kArduinoBufferSize = 1024;
+
 ABSL_FLAG(std::string, calculator_graph_config_file, "",
           "Name of file containing text format CalculatorGraphConfig proto.");
 ABSL_FLAG(std::string, input_video_path, "",
@@ -88,7 +91,87 @@ int getFilterIndex(int age, int cigarettes) {
   return index;
 }
 
+// open a connection to the arduino and get a FILE* to read from it
+int getArduino() {
+    int arduino = open( "/dev/ttyACM0", O_RDWR | O_NONBLOCK | O_NDELAY );
+    if (arduino < 0)
+    {
+        //cout << "Error " << errno << " opening " << "/dev/ttyACM0" << ": " << strerror (errno) << endl;
+        return -1;
+    }
+
+    /* *** Configure Port *** */
+    struct termios tty;
+    memset (&tty, 0, sizeof tty);
+    if ( tcgetattr ( arduino, &tty ) != 0 )
+    {
+        //out << "Error " << errno << " from tcgetattr: " << strerror(errno) << endl;
+        return -1;
+    }
+
+    /* Set Baud Rate */
+    cfsetospeed (&tty, B9600);
+    cfsetispeed (&tty, B9600);
+
+    /* Setting other Port Stuff */
+    tty.c_cflag     &=  ~PARENB;   // Make 8n1
+    tty.c_cflag     &=  ~CSTOPB;
+    tty.c_cflag     &=  ~CSIZE;
+    tty.c_cflag     |=  CS8;
+    tty.c_cflag     &=  ~CRTSCTS;  // no flow control
+    tty.c_lflag     =   0;         // no signaling chars, no echo, no canonical processing
+    tty.c_oflag     =   0;         // no remapping, no delays
+    tty.c_cc[VMIN]  =   0;         // read doesn't block
+    tty.c_cc[VTIME] =   5;         // 0.5 seconds read timeout
+
+    tty.c_cflag     |=  CREAD | CLOCAL;          // turn on READ & ignore ctrl lines
+    tty.c_iflag     &=  ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
+    tty.c_lflag     &=  ~(ICANON | ECHO | ECHOE | ISIG); // make raw
+    tty.c_oflag     &=  ~OPOST;                  // make raw
+
+    /* Flush Port, then applies attributes */
+    tcflush( arduino, TCIFLUSH );
+    if ( tcsetattr ( arduino, TCSANOW, &tty ) != 0)
+    {
+        //cout << "Error " << errno << " from tcsetattr" << endl;
+        return -1;
+    }
+
+    /* Get FILE* */
+    FILE* arduinofp = fdopen(arduino, "r");
+    return arduinofp;
+}
+
+struct SliderValues {
+  int val1;
+  int val2;
+}
+SliderValues getSliderValues(FILE* arduino) { 
+  if (fgets( buf, sizeof(buf), arduinofp ) == NULL) {
+    return NULL;
+  }
+  
+  char *str1 = strtok(buf, COMMA);
+  if (str1 == NULL) {
+    return NULL;
+  }
+
+  char *str2 = strtok(NULL, COMMA);
+  if (str2 == NULL) {
+    return NULL;
+  }
+
+  SliderValues result = {
+    atoi(str1),
+    atoi(str2)
+  }
+  return result;
+}
+
 absl::Status RunMPPGraph() {
+  LOG(INFO) << "Connect to Arduino.";
+  FILE* arduino = getArduino();
+
   std::string calculator_graph_config_contents;
   MP_RETURN_IF_ERROR(mediapipe::file::GetContents(
       FACEMESH_GRAPH_CONFIG_FILE,
@@ -229,21 +312,13 @@ absl::Status RunMPPGraph() {
 
     cv::imshow(kWindowName, output_frame_mat);
 
-    const int pressed_key = cv::waitKey(5);
+    // read slider values from arduino
+    SliderValues sliderVals = getSliderValues(arduino);
+    if (sliderVals != NULL) {
+      age = sliderVals.val1;
+      cigarettes = sliderVals.val2;
+    }
 
-    // Press Q and W to increase/decrease cigarettes
-    if (pressed_key == kKeyW && cigarettes < kMaxCigarettes) {
-      cigarettes++;
-    } else if (pressed_key == kKeyQ && cigarettes > kMinCigarettes) {
-      cigarettes--;
-    }
-    
-    // Press A and S to increase/decrease age
-    if (pressed_key == kKeyA && age > kMinAge) {
-      age--;
-    } else if (pressed_key == kKeyS && age < kMaxAge) {
-      age++;
-    }
     LOG(INFO) << "AGE: " << age << ", CIGS: " << cigarettes;
 
     // Add selected filter index as input to graph
@@ -255,6 +330,7 @@ absl::Status RunMPPGraph() {
     );
 
     // Press ESC or X to exit.
+    const int pressed_key = cv::waitKey(5);
     if (pressed_key == kKeyESC || pressed_key == kKeyX) {
       grab_frames = false;
     }
