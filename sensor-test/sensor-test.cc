@@ -75,10 +75,7 @@ int main(void) {
 
     /* *** READ *** */
 	for (int i = 0; i <= 10000; i++) {
-		int n = fgets( buf, sizeof(buf), arduinofp );
-
-		/* Error Handling */
-		if (n < 0)
+		if (fgets( buf, sizeof(buf), arduinofp ) == NULL)
 		{
 			cout << "Error reading: " << strerror(errno) << endl;
 		}
