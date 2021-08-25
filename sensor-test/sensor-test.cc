@@ -10,6 +10,7 @@
 using namespace std;
 
 const int BUFFER_SIZE = 1024;
+const char* COMMA = ',';
 
 int main(void) {
     /* Open File Descriptor */
@@ -79,9 +80,9 @@ int main(void) {
         
         /* Print what I read... */
         cout << "Read: " << buf << endl;
-        char *str1 = strtok(buf, ',');
+        char *str1 = strtok(buf, COMMA);
         if (str1 != NULL) {
-            char *str2 = strtok(NULL, ',');
+            char *str2 = strtok(NULL, COMMA);
             if (str2 != NULL) {
                 cout << "Str1: " << str1 << ", Str2:" << str2;
                 //int val1 = atoi(str1);
