@@ -62,10 +62,6 @@ int main(void) {
         exit(errno);
     }
 
-    /* *** WRITE *** */
-//unsigned char cmd[] = {'I', 'N', 'I', 'T', ' ', '\r', '\0'};
-    //int n_written = write( arduino, cmd, sizeof(cmd) -1 );
-
     /* Get FILE* */
     FILE* arduinofp = fdopen(arduino, "r");
 
@@ -74,17 +70,15 @@ int main(void) {
     memset (&buf, '\0', sizeof(buf));
 
     /* *** READ *** */
-	for (int i = 0; i <= 10000; i++) {
-		int n = fgets( buf, sizeof(buf), arduinofp );
-
-		/* Error Handling */
-		if (n < 0)
-		{
-			cout << "Error reading: " << strerror(errno) << endl;
-		}
-
-		cout << "Read: " << buf << endl;
-
+    for (int i = 0; i <= 1000000; i++) {
+        if (fgets( buf, sizeof(buf), arduinofp ) == NULL)
+        {
+            //cout << "Error reading: " << strerror(errno) << endl;
+            continue;
+        }
+        
+        /* Print what I read... */
+        cout << "Read: " << buf << endl;
         char *str1 = strtok(buf, ',');
         if (str1 != NULL) {
             char *str2 = strtok(NULL, ',');
@@ -95,7 +89,8 @@ int main(void) {
                 //cout << "Val1: " << val1 << ", Val2:" << val2;
             }
         }
-	}
-
+    }
+    
     close(arduino);
+    cout << "Done!" << endl;
 }
