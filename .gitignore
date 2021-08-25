@@ -1,6 +1,11 @@
+# mediapipe
 bazel-*
 mediapipe/mediapipe/MediaPipe.xcodeproj
 mediapipe/mediapipe/MediaPipe.tulsiproj/*.tulsiconf-user
 mediapipe/mediapipe/provisioning_profile.mobileprovision
 .configure.bazelrc
 .user.bazelrc
+
+# binary files
+sensor-test/testsensor
+camera-test/simple_camera

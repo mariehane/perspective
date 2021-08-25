@@ -70,7 +70,6 @@ int main(void) {
 
         /* *** READ *** */
 	for (int i = 0; i <= 10000; i++) {
-		fgets
 		int n = read( arduino, &buf , sizeof buf );
 
 		/* Error Handling */
