@@ -1,0 +1,169 @@
+# Test face effect graph based on face_effect_gpu.pbtxt
+
+# GPU buffer. (GpuBuffer)
+input_stream: "input_video"
+
+# An integer, which indicate which effect is selected. (int)
+input_stream: "selected_effect_id"
+
+
+# Output image with rendered results. (GpuBuffer)
+output_stream: "output_video"
+
+# A list of geometry data for a single detected face.
+#
+# NOTE: there will not be an output packet in this stream for this particular
+# timestamp if none of faces detected.
+#
+# (std::vector<face_geometry::FaceGeometry>)
+output_stream: "multi_face_geometry"
+
+# Throttles the images flowing downstream for flow control. It passes through
+# the very first incoming image unaltered, and waits for downstream nodes
+# (calculators and subgraphs) in the graph to finish their tasks before it
+# passes through another image. All images that come in while waiting are
+# dropped, limiting the number of in-flight images in most part of the graph to
+# 1. This prevents the downstream nodes from queuing up incoming images and data
+# excessively, which leads to increased latency and memory usage, unwanted in
+# real-time mobile applications. It also eliminates unnecessarily computation,
+# e.g., the output produced by a node may get dropped downstream if the
+# subsequent nodes are still busy processing previous inputs.
+node {
+  calculator: "FlowLimiterCalculator"
+  input_stream: "input_video"
+  input_stream: "FINISHED:output_video"
+  input_stream_info: {
+    tag_index: "FINISHED"
+    back_edge: true
+  }
+  output_stream: "throttled_input_video"
+}
+
+# Generates an environment that describes the current virtual scene.
+node {
+  calculator: "FaceGeometryEnvGeneratorCalculator"
+  output_side_packet: "ENVIRONMENT:environment"
+  node_options: {
+    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
+      environment: {
+        origin_point_location: TOP_LEFT_CORNER
+        perspective_camera: {
+          vertical_fov_degrees: 63.0  # 63 degrees
+          near: 1.0  # 1cm
+          far: 10000.0  # 100m
+        }
+      }
+    }
+  }
+}
+
+# Computes the face geometry for a single face. The input source is defined
+# through `use_face_detection_input_source`.
+node {
+  calculator: "SingleFaceGeometryFromLandmarksGpu"
+  input_stream: "IMAGE:throttled_input_video"
+  input_side_packet: "ENVIRONMENT:environment"
+  output_stream: "MULTI_FACE_GEOMETRY:multi_face_geometry"
+}
+
+# Renders the selected effect based on `selected_effect_id`.
+#node {
+#  calculator: "FaceGeometryEffectRendererCalculator"
+#  input_stream: "IMAGE_GPU:throttled_input_video"
+#  input_stream: "MULTI_FACE_GEOMETRY:multi_face_geometry"
+#  input_side_packet: "ENVIRONMENT:environment"
+#  output_stream: "IMAGE_GPU:output_video"
+#  node_options: {
+#      [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+#      effect_texture_path: "mediapipe/graphs/face_effect/data/facepaint.pngblob"
+#    }
+#  }
+#}
+
+# Renders the selected effect based on `selected_effect_id`.
+node {
+  calculator: "SwitchContainer"
+  input_stream: "SELECT:selected_effect_id"
+  input_stream: "IMAGE_GPU:throttled_input_video"
+  input_stream: "MULTI_FACE_GEOMETRY:multi_face_geometry"
+  input_side_packet: "ENVIRONMENT:environment"
+  output_stream: "IMAGE_GPU:output_video"
+  node_options: {
+    [type.googleapis.com/mediapipe.SwitchContainerOptions] {
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter1.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter2.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter3.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter4.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter5.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter6.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter7.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter8.png"
+          }
+        }
+      }
+      contained_node: {
+        calculator: "FaceGeometryEffectRendererCalculator"
+        node_options: {
+          [type.googleapis.com/mediapipe.FaceGeometryEffectRendererCalculatorOptions] {
+            effect_texture_path: "mediapipe/perspective/data/filter9.png"
+          }
+        }
+      }
+    }
+  }
+}
+
+
