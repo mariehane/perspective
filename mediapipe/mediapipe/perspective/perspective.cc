@@ -146,33 +146,33 @@ FILE* getArduino() {
     return arduinofp;
 }
 
-struct SliderValues {
+typedef struct {
   int val1;
   int val2;
-}
-SliderValues getSliderValues(FILE* arduino) { 
+} SliderValues;
+
+SliderValues* getSliderValues(FILE* arduino) { 
   /* Allocate memory for read buffer */
   char buf [kArduinoBufferSize];
   memset (&buf, '\0', sizeof(buf));
 
-  if (fgets( buf, sizeof(buf), arduinofp ) == NULL) {
+  if (fgets( buf, sizeof(buf), arduino ) == NULL) {
     return NULL;
   }
   
-  char *str1 = strtok(buf, COMMA);
+  char *str1 = strtok(buf, kComma);
   if (str1 == NULL) {
     return NULL;
   }
 
-  char *str2 = strtok(NULL, COMMA);
+  char *str2 = strtok(NULL, kComma);
   if (str2 == NULL) {
     return NULL;
   }
 
-  SliderValues result = {
-    atoi(str1),
-    atoi(str2)
-  }
+  SliderValues* result = new SliderValues();
+  result->val1 = atoi(str1);
+  result->val2 = atoi(str2);
   return result;
 }
 
@@ -325,10 +325,10 @@ absl::Status RunMPPGraph() {
     cv::imshow(kWindowName, output_frame_mat);
 
     // read slider values from arduino
-    SliderValues sliderVals = getSliderValues(arduino);
+    SliderValues* sliderVals = getSliderValues(arduino);
     if (sliderVals != NULL) {
-      age = sliderVals.val1;
-      cigarettes = sliderVals.val2;
+      age = sliderVals->val1;
+      cigarettes = sliderVals->val2;
     }
 
     LOG(INFO) << "AGE: " << age << ", CIGS: " << cigarettes;
