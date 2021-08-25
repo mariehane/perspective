@@ -15,6 +15,10 @@
 // An example of sending OpenCV webcam frames into a MediaPipe graph.
 // This example requires a linux computer and a GPU with EGL support drivers.
 #include <cstdlib>
+#include <unistd.h>     // UNIX standard function definitions
+#include <fcntl.h>      // File control definitions
+#include <errno.h>      // Error number definitions
+#include <termios.h>    // POSIX terminal control definitions
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -147,6 +151,10 @@ struct SliderValues {
   int val2;
 }
 SliderValues getSliderValues(FILE* arduino) { 
+  /* Allocate memory for read buffer */
+  char buf [kArduinoBufferSize];
+  memset (&buf, '\0', sizeof(buf));
+
   if (fgets( buf, sizeof(buf), arduinofp ) == NULL) {
     return NULL;
   }
