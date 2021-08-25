@@ -9,8 +9,8 @@
 
 using namespace std;
 
-const int BUFFER_SIZE = 1024;
-const char* COMMA = ',';
+static const int BUFFER_SIZE = 1024;
+static const char* COMMA = ",";
 
 int main(void) {
     /* Open File Descriptor */
@@ -79,15 +79,15 @@ int main(void) {
         }
         
         /* Print what I read... */
-        cout << "Read: " << buf << endl;
+        cout << "Read: " << buf << "\n";
         char *str1 = strtok(buf, COMMA);
         if (str1 != NULL) {
             char *str2 = strtok(NULL, COMMA);
             if (str2 != NULL) {
-                cout << "Str1: " << str1 << ", Str2:" << str2;
-                //int val1 = atoi(str1);
-                //int val2 = atoi(str2);
-                //cout << "Val1: " << val1 << ", Val2:" << val2;
+                cout << "Str1: " << str1 << ", Str2: " << str2 << "\n";
+                int val1 = atoi(str1);
+                int val2 = atoi(str2);
+                cout << "Val1: " << val1 << ", Val2: " << val2 << "\n";
             }
         }
     }
