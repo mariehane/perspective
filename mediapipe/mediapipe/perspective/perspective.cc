@@ -96,12 +96,12 @@ int getFilterIndex(int age, int cigarettes) {
 }
 
 // open a connection to the arduino and get a FILE* to read from it
-int getArduino() {
+FILE* getArduino() {
     int arduino = open( "/dev/ttyACM0", O_RDWR | O_NONBLOCK | O_NDELAY );
     if (arduino < 0)
     {
         //cout << "Error " << errno << " opening " << "/dev/ttyACM0" << ": " << strerror (errno) << endl;
-        return -1;
+        return NULL;
     }
 
     /* *** Configure Port *** */
@@ -110,7 +110,7 @@ int getArduino() {
     if ( tcgetattr ( arduino, &tty ) != 0 )
     {
         //out << "Error " << errno << " from tcgetattr: " << strerror(errno) << endl;
-        return -1;
+        return NULL;
     }
 
     /* Set Baud Rate */
@@ -138,7 +138,7 @@ int getArduino() {
     if ( tcsetattr ( arduino, TCSANOW, &tty ) != 0)
     {
         //cout << "Error " << errno << " from tcsetattr" << endl;
-        return -1;
+        return NULL;
     }
 
     /* Get FILE* */
@@ -179,6 +179,10 @@ SliderValues getSliderValues(FILE* arduino) {
 absl::Status RunMPPGraph() {
   LOG(INFO) << "Connect to Arduino.";
   FILE* arduino = getArduino();
+  if (arduino == NULL) {
+    LOG(ERROR) << "Could not connect to Arduino!";
+    exit(1);
+  }
 
   std::string calculator_graph_config_contents;
   MP_RETURN_IF_ERROR(mediapipe::file::GetContents(
