@@ -83,8 +83,18 @@ int main(void) {
 			cout << "Error reading: " << strerror(errno) << endl;
 		}
 
-		/* Print what I read... */
 		cout << "Read: " << buf << endl;
+
+        char *str1 = strtok(buf, ',');
+        if (str1 != NULL) {
+            char *str2 = strtok(NULL, ',');
+            if (str2 != NULL) {
+                cout << "Str1: " << str1 << ", Str2:" << str2;
+                //int val1 = atoi(str1);
+                //int val2 = atoi(str2);
+                //cout << "Val1: " << val1 << ", Val2:" << val2;
+            }
+        }
 	}
 
     close(arduino);
