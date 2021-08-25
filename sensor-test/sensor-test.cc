@@ -9,11 +9,13 @@
 
 using namespace std;
 
-const int BUFFER_SIZE = 256;
+const int BUFFER_SIZE = 1024;
 
 int main(void) {
     /* Open File Descriptor */
     int arduino = open( "/dev/ttyACM0", O_RDWR | O_NONBLOCK | O_NDELAY );
+
+    /* Error Handling */
     if (arduino < 0)
     {
         cout << "Error " << errno << " opening " << "/dev/ttyACM0" << ": " << strerror (errno) << endl;
@@ -23,6 +25,8 @@ int main(void) {
     /* *** Configure Port *** */
     struct termios tty;
     memset (&tty, 0, sizeof tty);
+
+    /* Error Handling */
     if ( tcgetattr ( arduino, &tty ) != 0 )
     {
         cout << "Error " << errno << " from tcgetattr: " << strerror(errno) << endl;
@@ -62,13 +66,19 @@ int main(void) {
 //unsigned char cmd[] = {'I', 'N', 'I', 'T', ' ', '\r', '\0'};
     //int n_written = write( arduino, cmd, sizeof(cmd) -1 );
 
+    /* Get FILE* */
+    FILE* arduinofp = fdopen(arduino, "r");
+
     /* Allocate memory for read buffer */
     char buf [BUFFER_SIZE];
-    memset (&buf, '\0', sizeof buf);
+    memset (&buf, '\0', sizeof(buf));
 
     /* *** READ *** */
 	for (int i = 0; i <= 10000; i++) {
-		if (fgets(buf, BUFFER_SIZE, arduino) == NULL)
+		int n = fgets( buf, sizeof(buf), arduinofp );
+
+		/* Error Handling */
+		if (n < 0)
 		{
 			cout << "Error reading: " << strerror(errno) << endl;
 		}
