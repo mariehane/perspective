@@ -3,18 +3,18 @@ run: perspective
 
 makefile_dir=$(shell pwd)
 
-perspective: 
+perspective: mediapipe/perspective/*
 	bazel build -c opt --copt -DMESA_EGL_NO_X11_HEADERS --copt -DEGL_NO_X11 mediapipe/perspective:perspective
 	echo 
 	# setup data files
 	cd bazel-bin/mediapipe/perspective; \
-		ln -s $(makefile_dir)/mediapipe/perspective/perspective_graph_gpu.pbtxt; \
-		ln -s $(makefile_dir)/mediapipe/perspective/data/ || true
+		cp -iu $(makefile_dir)/mediapipe/perspective/perspective_graph_gpu.pbtxt .; \
+		cp -iur $(makefile_dir)/mediapipe/perspective/data/ .
 	cd bazel-bin/mediapipe/modules/face_detection/; \
-		ln -s $(makefile_dir)/mediapipe/modules/face_detection/face_detection_front.tflite || true; \
-		ln -s $(makefile_dir)/mediapipe/modules/face_detection/face_detection_short_range.tflite || true
+		cp -iu $(makefile_dir)/mediapipe/modules/face_detection/face_detection_front.tflite .; \
+		cp -iu $(makefile_dir)/mediapipe/modules/face_detection/face_detection_short_range.tflite .
 	cd bazel-bin/mediapipe/modules/face_landmark/; \
-		ln -s $(makefile_dir)/mediapipe/modules/face_landmark/face_landmark.tflite || true
+		cp -iu $(makefile_dir)/mediapipe/modules/face_landmark/face_landmark.tflite .
 
 
 run_test: test
