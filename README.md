@@ -15,7 +15,7 @@ Finally run `make run` in the `mediapipe` directory.
 ```C
 linux_setup.sh // Jetson Nano setup script
 mediapipe/
-├── makefile/  // makefile that enables `make perspective` and `make run`
+├── makefile   // makefile that enables `make perspective` and `make run`
 ├── mediapipe/
 │   ├── perspective/ // Source code for main executable
 │   │   ├── BUILD // bazel build file

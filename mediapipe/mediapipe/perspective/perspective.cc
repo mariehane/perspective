@@ -324,8 +324,27 @@ absl::Status RunMPPGraph() {
 
     cv::imshow(kWindowName, output_frame_mat);
 
-    // read slider values from arduino
-    if (arduino != NULL) {
+    // get keyboard input
+    const int pressed_key = cv::waitKey(5);
+
+    if (arduino == NULL) {
+      // if arduino connection could not be made, use keyboard input to change age and cigarettes
+      // Press Q and W to increase/decrease cigarettes
+      if (pressed_key == kKeyW && cigarettes < kMaxCigarettes) {
+        cigarettes++;
+      } else if (pressed_key == kKeyQ && cigarettes > kMinCigarettes) {
+        cigarettes--;
+      }
+
+      // Press A and S to increase/decrease age
+      if (pressed_key == kKeyA && age > kMinAge) {
+        age--;
+      } else if (pressed_key == kKeyS && age < kMaxAge) {
+        age++;
+      }
+
+    } else {
+      // read slider values from arduino
       SliderValues* sliderVals = getSliderValues(arduino);
       if (sliderVals != NULL) {
         age = sliderVals->val1;
@@ -344,7 +363,6 @@ absl::Status RunMPPGraph() {
     );
 
     // Press ESC or X to exit.
-    const int pressed_key = cv::waitKey(5);
     if (pressed_key == kKeyESC || pressed_key == kKeyX) {
       grab_frames = false;
     }
