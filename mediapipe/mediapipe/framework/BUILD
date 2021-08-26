@@ -15,6 +15,7 @@
 #
 
 load("//mediapipe/framework/port:build_config.bzl", "mediapipe_proto_library")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])
 
@@ -27,10 +28,28 @@ package_group(
     ],
 )
 
-exports_files([
-    "transitive_protos.bzl",
-    "encode_binary_proto.bzl",
-])
+bzl_library(
+    name = "transitive_protos_bzl",
+    srcs = [
+        "transitive_protos.bzl",
+    ],
+    visibility = ["//mediapipe/framework:__subpackages__"],
+)
+
+bzl_library(
+    name = "encode_binary_proto_bzl",
+    srcs = [
+        "encode_binary_proto.bzl",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "encode_binary_proto",
+    actual = ":encode_binary_proto_bzl",
+    deprecation = "Use encode_binary_proto_bzl",
+    visibility = ["//visibility:public"],
+)
 
 mediapipe_proto_library(
     name = "calculator_proto",
@@ -203,10 +222,10 @@ cc_library(
         "//mediapipe/framework:mediapipe_options_cc_proto",
         "//mediapipe/framework:packet_generator_cc_proto",
         "//mediapipe/framework:status_handler_cc_proto",
-        "//mediapipe/framework:stream_handler_cc_proto",
         "//mediapipe/framework/port:any_proto",
         "//mediapipe/framework/port:status",
-        "//mediapipe/framework/tool:options_util",
+        "//mediapipe/framework/tool:options_map",
+        "//mediapipe/framework/tool:packet_generator_wrapper_calculator_cc_proto",
         "//mediapipe/framework/tool:tag_map",
         "@com_google_absl//absl/memory",
     ],
@@ -280,7 +299,6 @@ cc_library(
         ":graph_service",
         ":graph_service_manager",
         ":input_stream_manager",
-        ":input_stream_shard",
         ":output_side_packet_impl",
         ":output_stream",
         ":output_stream_manager",
@@ -298,8 +316,6 @@ cc_library(
         ":timestamp",
         ":validated_graph_config",
         "//mediapipe/framework:calculator_cc_proto",
-        "//mediapipe/framework:calculator_profile_cc_proto",
-        "//mediapipe/framework:packet_factory_cc_proto",
         "//mediapipe/framework:packet_generator_cc_proto",
         "//mediapipe/framework:status_handler_cc_proto",
         "//mediapipe/framework:thread_pool_executor_cc_proto",
@@ -308,6 +324,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
@@ -317,8 +334,8 @@ cc_library(
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:source_location",
         "//mediapipe/framework/port:status",
-        "//mediapipe/framework/profiler:graph_profiler",
         "//mediapipe/framework/tool:fill_packet_set",
+        "//mediapipe/framework/tool:packet_generator_wrapper_calculator",
         "//mediapipe/framework/tool:status_util",
         "//mediapipe/framework/tool:tag_map",
         "//mediapipe/framework/tool:validate",
@@ -326,10 +343,7 @@ cc_library(
         "//mediapipe/gpu:graph_support",
         "//mediapipe/util:cpu_util",
     ] + select({
-        "//conditions:default": [
-            "//mediapipe/gpu:gpu_shared_data_internal",
-            "//mediapipe/gpu:gpu_service",
-        ],
+        "//conditions:default": ["//mediapipe/gpu:gpu_shared_data_internal"],
         "//mediapipe/gpu:disable_gpu": [],
     }),
 )
@@ -370,13 +384,11 @@ cc_library(
         ":input_side_packet_handler",
         ":input_stream_handler",
         ":input_stream_manager",
-        ":input_stream_shard",
         ":legacy_calculator_support",
         ":mediapipe_profiling",
         ":output_side_packet_impl",
         ":output_stream_handler",
         ":output_stream_manager",
-        ":output_stream_shard",
         ":packet",
         ":packet_set",
         ":packet_type",
@@ -385,14 +397,12 @@ cc_library(
         ":validated_graph_config",
         "//mediapipe/framework:calculator_cc_proto",
         "//mediapipe/framework:stream_handler_cc_proto",
-        "//mediapipe/framework/deps:registration",
         "//mediapipe/framework/port:core_proto",
         "//mediapipe/framework/port:integral_types",
         "//mediapipe/framework/port:logging",
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:source_location",
         "//mediapipe/framework/port:status",
-        "//mediapipe/framework/profiler:graph_profiler",
         "//mediapipe/framework/stream_handler:default_input_stream_handler",
         "//mediapipe/framework/stream_handler:in_order_output_stream_handler",
         "//mediapipe/framework/tool:name_util",
@@ -402,6 +412,7 @@ cc_library(
         "//mediapipe/gpu:graph_support",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
@@ -454,7 +465,7 @@ cc_library(
         "//mediapipe/framework:calculator_cc_proto",
         "//mediapipe/framework/port:any_proto",
         "//mediapipe/framework/port:logging",
-        "//mediapipe/framework/tool:options_util",
+        "//mediapipe/framework/tool:options_map",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
     ],
@@ -934,6 +945,9 @@ cc_library(
     }) + select({
         "//conditions:default": [],
         "//mediapipe/gpu:disable_gpu": ["MEDIAPIPE_DISABLE_GPU=1"],
+    }) + select({
+        "//conditions:default": [],
+        "//mediapipe/framework/port:disable_opencv": ["MEDIAPIPE_DISABLE_OPENCV=1"],
     }) + select({
         "//conditions:default": [],
         "//mediapipe/framework:disable_rtti_and_exceptions": [
@@ -1566,6 +1580,7 @@ cc_test(
         ":packet",
         ":packet_test_cc_proto",
         ":type_map",
+        "//mediapipe/framework/deps:message_matchers",
         "//mediapipe/framework/port:core_proto",
         "//mediapipe/framework/port:gtest_main",
         "@com_google_absl//absl/strings",
@@ -1619,6 +1634,8 @@ cc_test(
         ":calculator_contract_test_cc_proto",
         ":calculator_framework",
         ":graph_validation",
+        "//mediapipe/calculators/core:constant_side_packet_calculator",
+        "//mediapipe/calculators/core:default_side_packet_calculator",
         "//mediapipe/calculators/core:pass_through_calculator",
         "//mediapipe/framework:calculator_cc_proto",
         "//mediapipe/framework:packet_generator_cc_proto",

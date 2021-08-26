@@ -82,7 +82,7 @@ absl::Status RunMPPGraph() {
 #if (CV_MAJOR_VERSION >= 3) && (CV_MINOR_VERSION >= 2)
     capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    capture.set(cv::CAP_PROP_FPS, 60);
+    capture.set(cv::CAP_PROP_FPS, 30);
 #endif
   }
 

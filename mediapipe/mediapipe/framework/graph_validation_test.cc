@@ -31,6 +31,11 @@ namespace mediapipe {
 
 namespace {
 
+constexpr char kOutputTag[] = "OUTPUT";
+constexpr char kEnableTag[] = "ENABLE";
+constexpr char kSelectTag[] = "SELECT";
+constexpr char kSideinputTag[] = "SIDEINPUT";
+
 // Shows validation success for a graph and a subgraph.
 TEST(GraphValidationTest, InitializeGraphFromProtos) {
   auto config_1 = ParseTextProtoOrDie<CalculatorGraphConfig>(R"pb(
@@ -323,20 +328,21 @@ TEST(GraphValidationTest, OptionalSubgraphStreamsMismatched) {
 class OptionalSideInputTestCalculator : public CalculatorBase {
  public:
   static absl::Status GetContract(CalculatorContract* cc) {
-    cc->InputSidePackets().Tag("SIDEINPUT").Set<std::string>().Optional();
-    cc->Inputs().Tag("SELECT").Set<int>().Optional();
-    cc->Inputs().Tag("ENABLE").Set<bool>().Optional();
-    cc->Outputs().Tag("OUTPUT").Set<std::string>();
+    cc->InputSidePackets().Tag(kSideinputTag).Set<std::string>().Optional();
+    cc->Inputs().Tag(kSelectTag).Set<int>().Optional();
+    cc->Inputs().Tag(kEnableTag).Set<bool>().Optional();
+    cc->Outputs().Tag(kOutputTag).Set<std::string>();
     return absl::OkStatus();
   }
 
   absl::Status Process(CalculatorContext* cc) final {
     std::string value("default");
-    if (cc->InputSidePackets().HasTag("SIDEINPUT")) {
-      value = cc->InputSidePackets().Tag("SIDEINPUT").Get<std::string>();
+    if (cc->InputSidePackets().HasTag(kSideinputTag)) {
+      value = cc->InputSidePackets().Tag(kSideinputTag).Get<std::string>();
     }
-    cc->Outputs().Tag("OUTPUT").Add(new std::string(value),
-                                    cc->InputTimestamp());
+    cc->Outputs()
+        .Tag(kOutputTag)
+        .Add(new std::string(value), cc->InputTimestamp());
     return absl::OkStatus();
   }
 };
@@ -497,6 +503,56 @@ TEST(GraphValidationTest, OptionalInputsForGraph) {
   EXPECT_EQ(out_packet.Get<std::string>(), "default");
   MP_EXPECT_OK(graph_1.CloseAllPacketSources());
   MP_EXPECT_OK(graph_1.WaitUntilDone());
+}
+
+// Shows a calculator graph and DefaultSidePacketCalculator running with and
+// without one optional side packet.
+TEST(GraphValidationTest, DefaultOptionalInputsForGraph) {
+  // A subgraph defining one optional input-side-packet.
+  auto config_1 = ParseTextProtoOrDie<CalculatorGraphConfig>(R"pb(
+    type: "PassThroughGraph"
+    input_side_packet: "side_input_0"
+    output_side_packet: "OUTPUT:output_0"
+    node {
+      calculator: "ConstantSidePacketCalculator"
+      options: {
+        [mediapipe.ConstantSidePacketCalculatorOptions.ext]: {
+          packet { int_value: 2 }
+        }
+      }
+      output_side_packet: "PACKET:int_packet"
+    }
+    node {
+      calculator: "DefaultSidePacketCalculator"
+      input_side_packet: "OPTIONAL_VALUE:side_input_0"
+      input_side_packet: "DEFAULT_VALUE:int_packet"
+      output_side_packet: "VALUE:side_output_0"
+    }
+  )pb");
+  GraphValidation validation_1;
+  MP_EXPECT_OK(validation_1.Validate({config_1}, {}));
+  CalculatorGraph graph_1;
+  MP_EXPECT_OK(graph_1.Initialize({config_1}, {}));
+
+  // Run the graph specifying the optional side packet.
+  std::map<std::string, Packet> side_packets;
+  side_packets.insert({"side_input_0", MakePacket<int>(33)});
+  MP_EXPECT_OK(graph_1.StartRun(side_packets));
+  MP_EXPECT_OK(graph_1.CloseAllPacketSources());
+  MP_EXPECT_OK(graph_1.WaitUntilDone());
+
+  // The specified side packet value is used.
+  auto side_packet_0 = graph_1.GetOutputSidePacket("side_output_0");
+  EXPECT_EQ(side_packet_0->Get<int>(), 33);
+
+  // Run the graph omitting the optional inputs.
+  MP_EXPECT_OK(graph_1.StartRun({}));
+  MP_EXPECT_OK(graph_1.CloseAllPacketSources());
+  MP_EXPECT_OK(graph_1.WaitUntilDone());
+
+  // The default side packet value is used.
+  side_packet_0 = graph_1.GetOutputSidePacket("side_output_0");
+  EXPECT_EQ(side_packet_0->Get<int>(), 2);
 }
 
 }  // namespace

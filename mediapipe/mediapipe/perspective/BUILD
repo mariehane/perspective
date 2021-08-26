@@ -1,6 +1,8 @@
 licenses(["notice"])
 
-package(default_visibility = ["//mediapipe/examples:__subpackages__"])
+package(default_visibility = [
+    "//visibility:public",
+])
 
 cc_binary(
     name = "perspective",
@@ -25,7 +27,6 @@ cc_binary(
     ],
     data = [
         "//mediapipe/graphs/face_effect/data:facepaint.pngblob",
-        "//mediapipe/modules/face_detection:face_detection_front.tflite",
         "//mediapipe/modules/face_geometry/data:geometry_pipeline_metadata.binarypb",
         "//mediapipe/modules/face_geometry/data:geometry_pipeline_metadata_detection.binarypb",
         "//mediapipe/modules/face_geometry/data:geometry_pipeline_metadata_landmarks.binarypb",

@@ -212,6 +212,9 @@ message ProfilerConfig {
   // False specifies an event for each calculator invocation.
   // True specifies a separate event for each start and finish time.
   bool trace_log_instant_events = 17;
+
+  // Limits calculator-profile histograms to a subset of calculators.
+  string calculator_filter = 18;
 }
 
 // Describes the topology and function of a MediaPipe Graph.  The graph of
@@ -422,6 +425,9 @@ message CalculatorGraphConfig {
   // the graph config.
   string type = 20;
 
-  // Can be used for annotating a graph.
+  // The types and default values for graph options, in proto2 syntax.
   MediaPipeOptions options = 1001;
+
+  // The types and default values for graph options, in proto3 syntax.
+  repeated google.protobuf.Any graph_options = 1002;
 }

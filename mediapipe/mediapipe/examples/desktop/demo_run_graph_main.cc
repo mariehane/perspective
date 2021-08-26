@@ -56,11 +56,13 @@ absl::Status RunMPPGraph() {
   MP_RETURN_IF_ERROR(graph.Initialize(config));
 
   LOG(INFO) << "Initialize the camera or load the video.";
-  
-  //cv::VideoCapture capture;
-  //capture.open(pipeline, cv::CAP_GSTREAMER);
-  cv::VideoCapture capture(0);
-
+  cv::VideoCapture capture;
+  const bool load_video = !absl::GetFlag(FLAGS_input_video_path).empty();
+  if (load_video) {
+    capture.open(absl::GetFlag(FLAGS_input_video_path));
+  } else {
+    capture.open(0);
+  }
   RET_CHECK(capture.isOpened());
 
   cv::VideoWriter writer;
@@ -70,7 +72,7 @@ absl::Status RunMPPGraph() {
 #if (CV_MAJOR_VERSION >= 3) && (CV_MINOR_VERSION >= 2)
     capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    capture.set(cv::CAP_PROP_FPS, 60);
+    capture.set(cv::CAP_PROP_FPS, 30);
 #endif
   }
 
@@ -84,15 +86,20 @@ absl::Status RunMPPGraph() {
   while (grab_frames) {
     // Capture opencv camera or video frame.
     cv::Mat camera_frame_raw;
-    //capture.read(camera_frame_raw); // TODO: try read instead of >>
     capture >> camera_frame_raw;
     if (camera_frame_raw.empty()) {
-      LOG(INFO) << "Ignore empty frames from camera.";
-      continue;
+      if (!load_video) {
+        LOG(INFO) << "Ignore empty frames from camera.";
+        continue;
+      }
+      LOG(INFO) << "Empty frame, end of video reached.";
+      break;
     }
     cv::Mat camera_frame;
     cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
-    cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
+    if (!load_video) {
+      cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
+    }
 
     // Wrap Mat into an ImageFrame.
     auto input_frame = absl::make_unique<mediapipe::ImageFrame>(

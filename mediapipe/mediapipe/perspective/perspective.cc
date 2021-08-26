@@ -181,7 +181,7 @@ absl::Status RunMPPGraph() {
   FILE* arduino = getArduino();
   if (arduino == NULL) {
     LOG(ERROR) << "Could not connect to Arduino!";
-    exit(1);
+    //exit(1);
   }
 
   std::string calculator_graph_config_contents;
@@ -325,10 +325,12 @@ absl::Status RunMPPGraph() {
     cv::imshow(kWindowName, output_frame_mat);
 
     // read slider values from arduino
-    SliderValues* sliderVals = getSliderValues(arduino);
-    if (sliderVals != NULL) {
-      age = sliderVals->val1;
-      cigarettes = sliderVals->val2;
+    if (arduino != NULL) {
+      SliderValues* sliderVals = getSliderValues(arduino);
+      if (sliderVals != NULL) {
+        age = sliderVals->val1;
+        cigarettes = sliderVals->val2;
+      }
     }
 
     LOG(INFO) << "AGE: " << age << ", CIGS: " << cigarettes;
