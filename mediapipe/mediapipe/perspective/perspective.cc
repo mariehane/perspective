@@ -95,6 +95,21 @@ int getFilterIndex(int age, int cigarettes) {
   return index;
 }
 
+int getFilterIndexFromSliderValues(int val1, int val2) {
+  int index = 0;
+  if (val1 >= 300 && val1 < 700) {
+    index += 1;
+  } else if (val1 >= 60) {
+    index += 2;
+  }
+  if (val2 >= 300 && val2 < 700) {
+    index += 3;
+  } else if (val2 >= 700) {
+    index += 6;
+  }
+  return index;
+}
+
 // open a connection to the arduino and get a FILE* to read from it
 FILE* getArduino() {
     int arduino = open( "/dev/ttyACM0", O_RDWR | O_NONBLOCK | O_NDELAY );
