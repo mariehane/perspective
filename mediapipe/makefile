@@ -1,5 +1,5 @@
 run: perspective
-	export GLOG_logtostderr=1; cd bazel-bin; ./mediapipe/perspective/perspective
+	export GLOG_logtostderr=1; cd bazel-bin; sudo ./mediapipe/perspective/perspective
 
 makefile_dir=$(shell pwd)
 

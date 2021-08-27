@@ -59,7 +59,9 @@ constexpr int kKeyW = 119;
 constexpr int kKeyX = 120;
 
 constexpr char kComma[] = ",";
+constexpr char kNewline[] = "\n";
 constexpr int kArduinoBufferSize = 1024;
+constexpr double kValExpAverageAlpha = 0.25;
 
 ABSL_FLAG(std::string, calculator_graph_config_file, "",
           "Name of file containing text format CalculatorGraphConfig proto.");
@@ -161,6 +163,16 @@ FILE* getArduino() {
     return arduinofp;
 }
 
+int flushArduino(FILE* arduino) {
+  /* Clear out old input, so only the newest is read */
+  int arduinofd = fileno(arduino);
+  if (arduinofd == -1) {
+    std::cout << "Error flushing arduino!" << std::endl;
+    return -1;
+  }
+  return tcflush(arduinofd, TCIFLUSH);
+}
+
 typedef struct {
   int val1;
   int val2;
@@ -171,17 +183,26 @@ SliderValues* getSliderValues(FILE* arduino) {
   char buf [kArduinoBufferSize];
   memset (&buf, '\0', sizeof(buf));
 
-  if (fgets( buf, sizeof(buf), arduino ) == NULL) {
-    return NULL;
+  while(getc(arduino) != '\n') {
+    continue;
   }
-  
-  char *str1 = strtok(buf, kComma);
-  if (str1 == NULL) {
+	
+  if (fgets( buf, sizeof(buf), arduino ) == NULL) {
+    std::cout << "Error reading from arudino" << std::endl;
     return NULL;
   }
 
-  char *str2 = strtok(NULL, kComma);
+  std::cout << "Read:" << buf << std::endl;
+  
+  char *str1 = strtok(buf, kComma);
+  if (str1 == NULL) {
+    std::cout << "Error reading str1" << std::endl;
+    return NULL;
+  }
+
+  char *str2 = strtok(NULL, kNewline);
   if (str2 == NULL) {
+    std::cout << "Error reading str2" << std::endl;
     return NULL;
   }
 
@@ -192,11 +213,10 @@ SliderValues* getSliderValues(FILE* arduino) {
 }
 
 absl::Status RunMPPGraph() {
-  LOG(INFO) << "Connect to Arduino.";
+  std::cout << "Connect to Arduino." << std::endl;
   FILE* arduino = getArduino();
   if (arduino == NULL) {
-    LOG(ERROR) << "Could not connect to Arduino!";
-    //exit(1);
+    std::cout << "Could not connect to Arduino!" << std::endl;
   }
 
   std::string calculator_graph_config_contents;
@@ -264,9 +284,14 @@ absl::Status RunMPPGraph() {
   int age = 20;
   int cigarettes = 0;
 
+  int val1 = 0;
+  int val2 = 0;
+
   LOG(INFO) << "Start grabbing and processing frames.";
   bool grab_frames = true;
   while (grab_frames) {
+    flushArduino(arduino);
+
     // Capture opencv camera or video frame.
     cv::Mat camera_frame_raw;
     capture >> camera_frame_raw;
@@ -342,8 +367,10 @@ absl::Status RunMPPGraph() {
     // get keyboard input
     const int pressed_key = cv::waitKey(5);
 
+    int selected_filter = 0;
     if (arduino == NULL) {
       // if arduino connection could not be made, use keyboard input to change age and cigarettes
+
       // Press Q and W to increase/decrease cigarettes
       if (pressed_key == kKeyW && cigarettes < kMaxCigarettes) {
         cigarettes++;
@@ -358,19 +385,29 @@ absl::Status RunMPPGraph() {
         age++;
       }
 
+      std::cout << "AGE: " << age << ", CIGS: " << cigarettes << std::endl;
+
+      selected_filter = getFilterIndex(age, cigarettes);
+
     } else {
       // read slider values from arduino
       SliderValues* sliderVals = getSliderValues(arduino);
       if (sliderVals != NULL) {
-        age = sliderVals->val1;
-        cigarettes = sliderVals->val2;
+	//std::cout << "SliderVal1: " << sliderVals->val1 << ", Val2: " << sliderVals->val2 << std::endl;
+	if (sliderVals->val1 > 0 && sliderVals->val1 <= 1024 &&
+	    sliderVals->val2 > 0 && sliderVals->val2 <= 1024) {
+	  // exponential moving average
+	  val1 = (kValExpAverageAlpha * sliderVals->val1) + (1.0 - kValExpAverageAlpha) * val1;
+	  val2 = (kValExpAverageAlpha * sliderVals->val2) + (1.0 - kValExpAverageAlpha) * val2;
+	  std::cout << "Val1: " << val1 << ", Val2: " << val2 << std::endl;
+
+          selected_filter = getFilterIndexFromSliderValues(val1, val2);
+	}
+	delete sliderVals;
       }
     }
 
-    LOG(INFO) << "AGE: " << age << ", CIGS: " << cigarettes;
-
     // Add selected filter index as input to graph
-    int selected_filter = getFilterIndex(age, cigarettes);
     graph.AddPacketToInputStream( 
       kSelectedFilterInputStream, 
       mediapipe::MakePacket<int>(selected_filter)
