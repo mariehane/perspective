@@ -161,43 +161,40 @@ int flushArduino(FILE* arduino) {
   return tcflush(arduinofd, TCIFLUSH);
 }
 
-typedef struct {
+struct SliderValues {
   int val1;
   int val2;
-} SliderValues;
+};
+SliderValues sliderVals = {0, 0};
 
-SliderValues* getSliderValues(FILE* arduino) { 
-  /* Allocate memory for read buffer */
+void arduinoWorker(FILE* arduino) {
   char buf [kArduinoBufferSize];
-  memset (&buf, '\0', sizeof(buf));
+  while(true) {
+    memset(&buf, '\0', sizeof(buf));
 
-  while(getc(arduino) != '\n') {
-    continue;
-  }
-	
-  if (fgets( buf, sizeof(buf), arduino ) == NULL) {
-    std::cout << "Error reading from arudino" << std::endl;
-    return NULL;
-  }
+    if (fgets( buf, sizeof(buf), arduino ) == NULL) {
+      std::cout << "Error reading from arduino" << std::endl;
+      continue;
+    }
 
-  std::cout << "Read:" << buf << std::endl;
+    std::cout << "Read:" << buf << std::endl;
   
-  char *str1 = strtok(buf, kComma);
-  if (str1 == NULL) {
-    std::cout << "Error reading str1" << std::endl;
-    return NULL;
-  }
+    char *str1 = strtok(buf, kComma);
+    if (str1 == NULL) {
+      std::cout << "Error reading str1" << std::endl;
+      continue;
+    }
 
-  char *str2 = strtok(NULL, kNewline);
-  if (str2 == NULL) {
-    std::cout << "Error reading str2" << std::endl;
-    return NULL;
-  }
+    char *str2 = strtok(NULL, kNewline);
+    if (str2 == NULL) {
+      std::cout << "Error reading str2" << std::endl;
+      continue;
+    }
+    std::cout << "Str1:" << str1 << ", str2:" << str2 << std::endl;
 
-  SliderValues* result = new SliderValues();
-  result->val1 = atoi(str1);
-  result->val2 = atoi(str2);
-  return result;
+    sliderVals.val1 = atoi(str1);
+    sliderVals.val2 = atoi(str2);
+  }
 }
 
 absl::Status RunMPPGraph() {
@@ -205,6 +202,15 @@ absl::Status RunMPPGraph() {
   FILE* arduino = getArduino();
   if (arduino == NULL) {
     std::cout << "Could not connect to Arduino!" << std::endl;
+  } else {
+    // start subprocess to read from arduino
+    int pid = fork();
+    if (pid < 0) {
+      std::cout << "Fork failed!" << std::endl;
+      exit(1);
+    } else if (fork() == 0) {
+      arduinoWorker(arduino);
+    }
   }
 
   std::string calculator_graph_config_contents;
@@ -271,9 +277,6 @@ absl::Status RunMPPGraph() {
 
   int age = 20;
   int cigarettes = 0;
-
-  int val1 = 0;
-  int val2 = 0;
 
   LOG(INFO) << "Start grabbing and processing frames.";
   bool grab_frames = true;
@@ -355,7 +358,7 @@ absl::Status RunMPPGraph() {
     // get keyboard input
     const int pressed_key = cv::waitKey(5);
 
-    int selected_filter = 0;
+    int selected_filter;
     if (arduino == NULL) {
       // if arduino connection could not be made, use keyboard input to change age and cigarettes
 
@@ -379,20 +382,7 @@ absl::Status RunMPPGraph() {
 
     } else {
       // read slider values from arduino
-      SliderValues* sliderVals = getSliderValues(arduino);
-      if (sliderVals != NULL) {
-	//std::cout << "SliderVal1: " << sliderVals->val1 << ", Val2: " << sliderVals->val2 << std::endl;
-	if (sliderVals->val1 > 0 && sliderVals->val1 <= 1024 &&
-	    sliderVals->val2 > 0 && sliderVals->val2 <= 1024) {
-	  // exponential moving average
-	  val1 = (kValExpAverageAlpha * sliderVals->val1) + (1.0 - kValExpAverageAlpha) * val1;
-	  val2 = (kValExpAverageAlpha * sliderVals->val2) + (1.0 - kValExpAverageAlpha) * val2;
-	  std::cout << "Val1: " << val1 << ", Val2: " << val2 << std::endl;
-
-          selected_filter = getFilterIndexFromSliderValues(val1, val2);
-	}
-	delete sliderVals;
-      }
+      selected_filter = getFilterIndexFromSliderValues(sliderVals.val1, sliderVals.val2);
     }
 
     // Add selected filter index as input to graph
