@@ -101,7 +101,7 @@ int getFilterIndexFromSliderValues(int val1, int val2) {
 }
 
 // open a connection to the arduino and get a FILE* to read from it
-FILE* getArduino() {
+int getArduino() {
     int arduino = open( "/dev/ttyACM0", O_RDWR | O_NONBLOCK | O_NDELAY );
     if (arduino < 0)
     {
@@ -147,8 +147,8 @@ FILE* getArduino() {
     }
 
     /* Get FILE* */
-    FILE* arduinofp = fdopen(arduino, "r");
-    return arduinofp;
+    //FILE* arduinofp = fdopen(arduino, "r");
+    return arduino;
 }
 
 /* Clear out old input, so only the newest is read */
@@ -167,13 +167,14 @@ struct SliderValues {
 };
 SliderValues sliderVals = {0, 0};
 
-void arduinoWorker(FILE* arduino) {
+void arduinoWorker(int arduino) {
   char buf [kArduinoBufferSize];
   while(true) {
+    usleep(100000);
     memset(&buf, '\0', sizeof(buf));
 
-    if (fgets( buf, sizeof(buf), arduino ) == NULL) {
-      std::cout << "Error reading from arduino" << std::endl;
+    if (read(arduino, buf, sizeof(buf)) == -1) {
+      //std::cout << "Error reading from arduino" << std::endl;
       continue;
     }
 
@@ -181,26 +182,26 @@ void arduinoWorker(FILE* arduino) {
   
     char *str1 = strtok(buf, kComma);
     if (str1 == NULL) {
-      std::cout << "Error reading str1" << std::endl;
+      //std::cout << "Error reading str1" << std::endl;
       continue;
     }
 
     char *str2 = strtok(NULL, kNewline);
     if (str2 == NULL) {
-      std::cout << "Error reading str2" << std::endl;
+      //std::cout << "Error reading str2" << std::endl;
       continue;
     }
-    std::cout << "Str1:" << str1 << ", str2:" << str2 << std::endl;
-
     sliderVals.val1 = atoi(str1);
     sliderVals.val2 = atoi(str2);
+
+    //std::cout << "Val1:" << sliderVals.val1 << ", Val2:" << sliderVals.val2 << std::endl;
   }
 }
 
 absl::Status RunMPPGraph() {
   std::cout << "Connect to Arduino." << std::endl;
-  FILE* arduino = getArduino();
-  if (arduino == NULL) {
+  int arduino = getArduino();
+  if (arduino == -1) {
     std::cout << "Could not connect to Arduino!" << std::endl;
   } else {
     // start subprocess to read from arduino
@@ -281,8 +282,6 @@ absl::Status RunMPPGraph() {
   LOG(INFO) << "Start grabbing and processing frames.";
   bool grab_frames = true;
   while (grab_frames) {
-    flushArduino(arduino);
-
     // Capture opencv camera or video frame.
     cv::Mat camera_frame_raw;
     capture >> camera_frame_raw;
@@ -359,7 +358,7 @@ absl::Status RunMPPGraph() {
     const int pressed_key = cv::waitKey(5);
 
     int selected_filter;
-    if (arduino == NULL) {
+    if (arduino == -1) {
       // if arduino connection could not be made, use keyboard input to change age and cigarettes
 
       // Press Q and W to increase/decrease cigarettes
@@ -382,6 +381,7 @@ absl::Status RunMPPGraph() {
 
     } else {
       // read slider values from arduino
+      std::cout << "Val1:" << sliderVals.val1 << ", Val2:" << sliderVals.val2 << std::endl;
       selected_filter = getFilterIndexFromSliderValues(sliderVals.val1, sliderVals.val2);
     }
 
