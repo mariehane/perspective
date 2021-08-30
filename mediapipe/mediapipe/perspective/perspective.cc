@@ -1,24 +1,12 @@
-// Copyright 2019 The MediaPipe Authors.
+// Perspective Smart Mirror application based on MediaPipe's GPU example.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// An example of sending OpenCV webcam frames into a MediaPipe graph.
-// This example requires a linux computer and a GPU with EGL support drivers.
+// Licensed under the MIT license (see: https://opensource.org/licenses/MIT)
+
 #include <cstdlib>
-#include <unistd.h>     // UNIX standard function definitions
-#include <fcntl.h>      // File control definitions
-#include <errno.h>      // Error number definitions
-#include <termios.h>    // POSIX terminal control definitions
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <termios.h>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -163,8 +151,8 @@ FILE* getArduino() {
     return arduinofp;
 }
 
+/* Clear out old input, so only the newest is read */
 int flushArduino(FILE* arduino) {
-  /* Clear out old input, so only the newest is read */
   int arduinofd = fileno(arduino);
   if (arduinofd == -1) {
     std::cout << "Error flushing arduino!" << std::endl;
