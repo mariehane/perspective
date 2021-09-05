@@ -4,8 +4,8 @@
 > Perspective is a smart mirror using augmented reality to prevent cancer through behavioral change — [linkedin.com/company/weareperspective-dk](https://www.linkedin.com/company/weareperspective-dk/)
 
 <p float="left" align="middle">
-  <img src="img1.jpeg" width="100"/>
-  <img src="img2.jpeg" width="100"/>
+  <img src="img1.jpeg" width="40%"/>
+  <img src="img2.jpeg" width="40%"/>
 </p>
 
 ## Setup
