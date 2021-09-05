@@ -1,7 +1,12 @@
-<img src="icon.png" align="right" />
+<img src="icon.png" align="right" width="150"/>
 
 # Perspective
-> Perspective is a smart mirror using augmented reality to prevent cancer through behavioral change
+> Perspective is a smart mirror using augmented reality to prevent cancer through behavioral change — [linkedin.com/company/weareperspective-dk](https://www.linkedin.com/company/weareperspective-dk/)
+
+<p float="left" align="middle">
+  <img src="img1.jpeg" width="100"/>
+  <img src="img2.jpeg" width="100"/>
+</p>
 
 ## Setup
 The project is built upon MediaPipe which depends on Bazelisk, OpenCV and FFmpeg. 
